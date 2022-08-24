@@ -1,5 +1,5 @@
 # LatentSimilarity
-Metric learning-based predictive model for small datasets
+Metric learning-based predictive model for small, high dimensional datasets
 
 ## Capabilities
 - Very fast runtime
@@ -8,11 +8,11 @@ Metric learning-based predictive model for small datasets
 - Hyperparameter tuning for single-task models
 
 ## Requirements
-python
-pytorch with cuda
-numpy
-sklearn
-requests (to get sample data)
+- python
+- pytorch with cuda
+- numpy
+- sklearn
+- requests (to get sample data)
 
 ## Usage
 Take a look at the examples in the ```notebooks``` directory for sample usage.
