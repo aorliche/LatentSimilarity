@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-from scipy.stats import uniform, loguniform, randint
 
 from latsim.util import *
 from latsim.latsim import LatSim
