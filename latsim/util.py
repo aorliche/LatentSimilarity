@@ -77,7 +77,7 @@ def validate(sim, X, ys, testIdcs):
     losses = []
     with torch.no_grad():
         res = sim(X, ys, testIdcs)
-        for r,y in zip(getAvg(res, nTasks), ys):
+        for r,y in zip(getAvg(res), ys):
             if y.dim() == 1:
                 loss = mseLoss(r[testIdcs], y[testIdcs]).cpu().numpy()**0.5
                 losses.append(loss)
@@ -85,5 +85,5 @@ def validate(sim, X, ys, testIdcs):
                 corr = (torch.argmax(r, dim=1) == torch.argmax(y, dim=1))[testIdcs]
                 loss = torch.sum(corr)/len(testIdcs)
                 losses.append(loss)
-    model.train()
+    sim.train()
     return losses
