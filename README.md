@@ -1,6 +1,10 @@
 # LatentSimilarity
 Metric learning-based predictive model for small, high dimensional datasets
 
+<img src='' alt='LatSim overview'>
+
+Our pre-print is available on <a href='https://arxiv.org/abs/2208.14484'>arXiv</a>
+
 ## Capabilities
 - Very fast runtime
 - High accuracy on limited data
