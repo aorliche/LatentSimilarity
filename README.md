@@ -1,7 +1,7 @@
 # LatentSimilarity
 Metric learning-based predictive model for small, high dimensional datasets
 
-<img src='' alt='LatSim overview'>
+<img src='https://raw.githubusercontent.com/aorliche/LatentSimilarity/main/images/overview.png' alt='LatSim overview' width='600'>
 
 Our pre-print is available on <a href='https://arxiv.org/abs/2208.14484'>arXiv</a>
 
