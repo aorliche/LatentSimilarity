@@ -1,55 +1,58 @@
 
+'''
+Main LatentSimilarity class
+Modified 1/12/23 for simplicity
+
+Fast, but requires you to know a target stopping criteria
+'''
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from latsim.util import *
-
 class LatSim(nn.Module):
-    def __init__(self, nTasks, inp, dp=0.5, edp=0.1, wInit=1e-4, dim=2, temp=1):
+    def __init__(self, d, ld=2):
         super(LatSim, self).__init__()
-        self.nMods = inp.shape[1]
-        self.nTasks = nTasks
-        self.w = nn.Parameter(wInit*torch.randn(inp.shape[1],nTasks,inp.shape[-1],dim).float().cuda())
-        self.dp = nn.Dropout(p=dp)
-        self.edp = nn.Dropout(p=edp)
-        self.temp = temp if isinstance(temp, list) else nTasks*[temp]
-    
-    def getLatentsAndEdges(self, x, mod, task, w=None):
-        if w is None:
-            w = self.w[mod,task]
-        e = 1e-10
-        z = x@w
-        e = e+z@z.T
-        return z, e
+        self.A = nn.Parameter((torch.rand(ld,d)/(d**0.5)).float().cuda())
+
+    def E(self, xtr, xt):
+        AT = (xtr@self.A).T
+        A = xt@self.A
+        E = A@AT
+        return F.softmax(E,dim=1)
         
-    def forward(self, x, ys, testIdcs=None, return_es=False, return_zs=False):
-        assert len(ys) == self.nTasks, 'ys list does not have nTasks tasks'
-        x = self.dp(x)
-        res = []
-        es = []
-        zs = []
-        for mod in range(self.nMods):
-            res.append([])
-            es.append([])
-            zs.append([])
-            for task,y in enumerate(ys):
-                z, e = self.getLatentsAndEdges(x[:,mod], mod, task)
-                zs[-1].append(z)
-                if testIdcs is not None:
-                    e[:,testIdcs] = 0
-                e = mask(e)
-                e = self.edp(e)
-                e[e == 0] = float('-inf')
-                e = F.softmax(e/self.temp[task], dim=1)
-                res[-1].append(e@y)
-                es[-1].append(e.clone())
-        if return_es and return_zs:
-            return res, es, zs
-        elif return_es:
-            return res, es
-        elif return_zs:
-            return res, zs
-        else:
-            return res
+    def forward(self, xtr, ytr, xt=None):
+        if xt is None:
+            xt = xtr
+        E = self.E(xtr, xt)
+        return E@ytr
+
+def train_sim_mse(*args, **kwargs):
+    train_sim(*args, **kwargs)
+
+def train_sim_ce(*args, **kwargs):
+    kwargs['lossfn'] = nn.CrossEntropyLoss()
+    train_sim(*args, **kwargs)
+
+def train_sim(sim, xtr, ytr, stop, lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.mseLoss(), verbose=False):
+    # Optimizers
+    optim = torch.optim.Adam(latsim.parameters(), lr=lr, weight_decay=0)
+    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=20, factor=0.75, eps=1e-7)
+
+    for epoch in range(nepochs):
+        optim.zero_grad()
+        yhat = latsim(xtr, xtr, ytr)
+        loss = lossfn(yhat, ytr)
+        loss.backward()
+        optim.step()
+        if loss < stop:
+            break
+        sched.step(loss)
+        if verbose:
+            if epoch % pperiod == 0 or epoch == nepochs-1:
+                print(f'{epoch} recon: {float(loss)} lr: {float(sched._last_lr)}')
+
+    optim.zero_grad()
+    if verbose:
+        print('Complete')
