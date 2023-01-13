@@ -71,7 +71,7 @@ class LatSimClf(LatSimReg):
         
     def predict(self, x):
         yhat = super().predict(x)
-        return np.argmax(
+        return np.argmax(yhat, axis=1)
 
 # RandomizedSearchCV(sim, distributions, cv=cv, n_iter=n_iter, scoring='neg_root_mean_squared_error')
 # RandomizedSearchCV(sim, distributions, cv=cv, n_iter=n_iter, scoring='accuracy')

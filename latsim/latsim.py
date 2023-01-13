@@ -14,7 +14,7 @@ import torch.nn.functional as F
 class LatSim(nn.Module):
     def __init__(self, d, ld=2):
         super(LatSim, self).__init__()
-        self.A = nn.Parameter((torch.rand(ld,d)/(d**0.5)).float().cuda())
+        self.A = nn.Parameter((torch.randn(d,ld)/(d**0.5)).float().cuda())
 
     def E(self, xtr, xt):
         AT = (xtr@self.A).T
@@ -29,20 +29,21 @@ class LatSim(nn.Module):
         return E@ytr
 
 def train_sim_mse(*args, **kwargs):
+    kwargs['lossfn'] = nn.MSELoss()
     train_sim(*args, **kwargs)
 
 def train_sim_ce(*args, **kwargs):
     kwargs['lossfn'] = nn.CrossEntropyLoss()
     train_sim(*args, **kwargs)
 
-def train_sim(sim, xtr, ytr, stop, lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.mseLoss(), verbose=False):
+def train_sim(sim, xtr, ytr, stop, lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
     # Optimizers
-    optim = torch.optim.Adam(latsim.parameters(), lr=lr, weight_decay=0)
+    optim = torch.optim.Adam(sim.parameters(), lr=lr, weight_decay=0)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=20, factor=0.75, eps=1e-7)
 
     for epoch in range(nepochs):
         optim.zero_grad()
-        yhat = latsim(xtr, xtr, ytr)
+        yhat = sim(xtr, ytr)
         loss = lossfn(yhat, ytr)
         loss.backward()
         optim.step()
@@ -51,7 +52,7 @@ def train_sim(sim, xtr, ytr, stop, lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.m
         sched.step(loss)
         if verbose:
             if epoch % pperiod == 0 or epoch == nepochs-1:
-                print(f'{epoch} recon: {float(loss)} lr: {float(sched._last_lr)}')
+                print(f'{epoch} recon: {float(loss)} lr: {sched._last_lr}')
 
     optim.zero_grad()
     if verbose:
