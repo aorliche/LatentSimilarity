@@ -26,23 +26,27 @@ class LatSimReg(BaseEstimator):
 
     @staticmethod
     def get_default_params():
-        return dict(ld=2, stop=0, lr=1e-4, nepochs=100)
+        return dict(ld=2, stop=1, lr=1e-4, nepochs=100)
 
     @staticmethod
     def get_default_distributions():
         return dict(
             ld=[1,2,10],
-            stop=[0,1,10,100],
-            lr=[1e-5,1e-4,1e-2],
-            nepochs=[100,1000,10000],
+            stop=[0,1,10*10,100*100],
+            lr=[1e-5,1e-4,1e-3],
+            nepochs=[100,1000,2000],
         )
 
     def get_params(self, deep=False):
         return dict(ld=self.ld, stop=self.stop, lr=self.lr, nepochs=self.nepochs)
 
     def set_params(self, **params):
-        for key, value in params.items():
-            setattr(self, key, value)
+        dft = LatSimReg.get_default_params()
+        for key in dft:
+            if key in params:
+                setattr(self, key, params[key])
+            else:
+                setattr(self, key, dft[key])
         return self
 
     def fit(self, x, y, **kwargs):
@@ -65,10 +69,29 @@ class LatSimReg(BaseEstimator):
             yhat = self.sim(self.x, self.y, x)
         return yhat.detach().cpu().numpy()
 
-'''
-Classification subclass
-'''
 class LatSimClf(LatSimReg):
+    @staticmethod
+    def get_default_params():
+        return dict(ld=2, stop=1, lr=1e-4, nepochs=100)
+
+    @staticmethod
+    def get_default_distributions():
+        return dict(
+            ld=[1,2,10],
+            stop=[0,0.1,0.2,0.3],
+            lr=[1e-5,1e-4,1e-3],
+            nepochs=[100,1000,2000],
+        )
+
+    def set_params(self, **params):
+        dft = LatSimClf.get_default_params()
+        for key in dft:
+            if key in params:
+                setattr(self, key, params[key])
+            else:
+                setattr(self, key, dft[key])
+        return self
+
     def fit(self, x, y, **kwargs):
         y = to_torch(y).long()
         y = F.one_hot(y).float()
@@ -77,6 +100,3 @@ class LatSimClf(LatSimReg):
     def predict(self, x):
         yhat = super().predict(x)
         return np.argmax(yhat, axis=1)
-
-# RandomizedSearchCV(sim, distributions, cv=cv, n_iter=n_iter, scoring='neg_root_mean_squared_error')
-# RandomizedSearchCV(sim, distributions, cv=cv, n_iter=n_iter, scoring='accuracy')
