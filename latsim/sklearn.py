@@ -78,7 +78,7 @@ class LatSimClf(LatSimReg):
     def get_default_distributions():
         return dict(
             ld=[1,2,10],
-            stop=[0,0.1,0.2,0.3],
+            stop=[0,0.1,0.2,0.3,0.4],
             lr=[1e-5,1e-4,1e-3],
             nepochs=[100,1000,2000],
         )
@@ -98,5 +98,9 @@ class LatSimClf(LatSimReg):
         return super().fit(x, y, **kwargs)
 
     def predict(self, x):
-        yhat = super().predict(x)
+        yhat = self.predict_proba(x)
         return np.argmax(yhat, axis=1)
+    
+    def predict_proba(self, x):
+        yhat = super().predict(x)
+        return yhat
