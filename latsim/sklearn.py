@@ -5,13 +5,17 @@ In the new version, you call GridSearchCV or others yourself
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 
 from sklearn.base import BaseEstimator
-#from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
-from latsim.latsim import LatSim, train_sim_mse, train_sim_ce
+from latsim import LatSim, train_sim_mse, train_sim_ce
+
+def to_torch(x):
+    if not isinstance(x, torch.Tensor):
+        return torch.from_numpy(x).float().cuda()
+    else:
+        return x
 
 '''
 One class for regression, one (sub)class for classification
@@ -30,7 +34,7 @@ class LatSimReg(BaseEstimator):
             ld=[1,2,10],
             stop=[0,1,10,100],
             lr=[1e-5,1e-4,1e-2],
-            nepochs=[100,1000,10000], 
+            nepochs=[100,1000,10000],
         )
 
     def get_params(self, deep=False):
@@ -40,18 +44,19 @@ class LatSimReg(BaseEstimator):
         for key, value in params.items():
             setattr(self, key, value)
         return self
-    
-    def fit(self, x, y):
-        if not isinstance(x, torch.Tensor):
-            self.x = torch.from_numpy(x).float().cuda()
-        else:
-            self.x = x
-        if not isinstance(y, torch.Tensor):
-            self.y = torch.from_numpy(y).float().cuda()
-        else:
-            self.y = y
-        self.sim = LatSim(self.x[1], self.ld)
-        train_sim(self.sim, self.x, self.y, self.stop, self.lr, nepochs=self.nepochs)
+
+    def fit(self, x, y, **kwargs):
+        x = to_torch(x)
+        y = to_torch(y)
+        self.x = 1*x
+        self.y = 1*y
+        params = LatSimReg.get_default_params()
+        for arg in kwargs:
+            if arg in params:
+                params[arg] = kwargs[arg]
+        self.sim = LatSim(x.shape[1], params['ld'])
+        del params['ld']
+        train_sim_mse(self.sim, self.x, self.y, **params)
         return self
 
     def predict(self, x):
@@ -60,15 +65,15 @@ class LatSimReg(BaseEstimator):
             yhat = self.sim(self.x, self.y, x)
         return yhat.detach().cpu().numpy()
 
+'''
+Classification subclass
+'''
 class LatSimClf(LatSimReg):
-    def fit(self, x, y):
-        if not isinstance(y, torch.Tensor):
-            y = torch.from_numpy(y).float().cuda()
-        else:
-            y = y
-        y = f.one_hot(y)
-        return self.fit(x, y)
-        
+    def fit(self, x, y, **kwargs):
+        y = to_torch(y).long()
+        y = F.one_hot(y).float()
+        return super().fit(x, y, **kwargs)
+
     def predict(self, x):
         yhat = super().predict(x)
         return np.argmax(yhat, axis=1)

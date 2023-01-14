@@ -4,6 +4,7 @@ Main LatentSimilarity class
 Modified 1/12/23 for simplicity
 
 Fast, but requires you to know a target stopping criteria
+Alternatively, use validation set
 '''
 
 import numpy as np
@@ -36,10 +37,20 @@ def train_sim_ce(*args, **kwargs):
     kwargs['lossfn'] = nn.CrossEntropyLoss()
     train_sim(*args, **kwargs)
 
-def train_sim(sim, xtr, ytr, stop, lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
+def train_sim(sim, xtr, ytr, stop, xv=None, yv=None, 
+    lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
     # Optimizers
     optim = torch.optim.Adam(sim.parameters(), lr=lr, weight_decay=0)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=20, factor=0.75, eps=1e-7)
+         
+    # Validation set   
+    if xv is not None and yv is not None:
+        if yv.dim() == 2:
+            yvv = torch.argmax(yv, dim=1)
+            best = 0
+        else:
+            best = float('inf')
+        bestA = None
 
     for epoch in range(nepochs):
         optim.zero_grad()
@@ -50,10 +61,31 @@ def train_sim(sim, xtr, ytr, stop, lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.M
         if loss < stop:
             break
         sched.step(loss)
-        if verbose:
-            if epoch % pperiod == 0 or epoch == nepochs-1:
+        if epoch % pperiod == 0 or epoch == nepochs-1:
+            if xv is not None and yv is not None:
+                with torch.no_grad():
+                    yhat = sim(xtr, ytr, xv)
+                    if yv.dim() == 2:
+                        yhat = torch.argmax(yhat, dim=1)
+                        acc = torch.sum(yvv == yhat)/len(yvv)
+                        acc = float(acc)
+                        better = acc > best
+                    else:
+                        acc = lossfn(yhat, yv)
+                        acc = float(acc)
+                        better = acc < best
+                    if better:
+                        best = acc
+                        bestA = sim.A.detach()
+                        if verbose:
+                            print(f'Best acc {acc}') 
+            if verbose:
                 print(f'{epoch} recon: {float(loss)} lr: {sched._last_lr}')
 
     optim.zero_grad()
+    if xv is not None and yv is not None:
+        if verbose:
+            print(f'Final best acc {best}')
+        sim.A = nn.Parameter(bestA.float().cuda())
     if verbose:
         print('Complete')
