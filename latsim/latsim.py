@@ -4,7 +4,7 @@ Main LatentSimilarity class
 Modified 1/12/23 for simplicity
 
 Fast, but requires you to know a target stopping criteria
-Alternatively, use validation set
+Alternatively, use a validation set
 '''
 
 import numpy as np
@@ -21,6 +21,13 @@ class LatSim(nn.Module):
         AT = (xtr@self.A).T
         A = xt@self.A
         E = A@AT
+        '''
+        if xtr is xt:
+            M = torch.zeros(*E.shape).float().cuda()
+            i = torch.arange(M.shape[0])
+            M[i,i] = float('-inf')
+            E = E + M
+        '''
         return F.softmax(E,dim=1)
         
     def forward(self, xtr, ytr, xt=None):
