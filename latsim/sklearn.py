@@ -1,6 +1,11 @@
 '''
 sklearn interface for e.g., parameter search
 In the new version, you call GridSearchCV or others yourself
+
+Validation set created by default from training data
+<100 train: valid = 1/2 train
+<500 train: valid = 1/4 train
+>500 train: valid = 1/8 train
 '''
 
 import numpy as np
@@ -26,7 +31,7 @@ class LatSimReg(BaseEstimator):
 
     @staticmethod
     def get_default_params():
-        return dict(ld=2, stop=1, lr=1e-4, nepochs=100)
+        return dict(ld=2, stop=1, lr=1e-4, nepochs=100, lossfn=nn.MSELoss())
 
     @staticmethod
     def get_default_distributions():
@@ -52,15 +57,26 @@ class LatSimReg(BaseEstimator):
     def fit(self, x, y, **kwargs):
         x = to_torch(x)
         y = to_torch(y)
-        self.x = 1*x
-        self.y = 1*y
+        # Make automatic validation sets
+        train = y.shape[0]
+        if train < 100:
+            train = int(train/2)
+        elif train < 500:
+            train = int(train/4)
+        else:
+            train = int(train/8)
+        self.x = 1*x[:train]
+        self.y = 1*y[:train]
+        self.xv = 1*x[train:]
+        self.yv = 1*x[train:]
+        # Load parameters (overriden by Clf params if Clf)
         params = LatSimReg.get_default_params()
         for arg in kwargs:
             if arg in params:
                 params[arg] = kwargs[arg]
         self.sim = LatSim(x.shape[1], params['ld'])
         del params['ld']
-        train_sim_mse(self.sim, self.x, self.y, **params)
+        train_sim(self.sim, self.x, self.y, xv=self.xv, yv=self.yv, **params)
         return self
 
     def predict(self, x):
@@ -72,7 +88,7 @@ class LatSimReg(BaseEstimator):
 class LatSimClf(LatSimReg):
     @staticmethod
     def get_default_params():
-        return dict(ld=2, stop=1, lr=1e-4, nepochs=100)
+        return dict(ld=2, stop=1, lr=1e-4, nepochs=100, lossfn=nn.CrossEntropyLoss())
 
     @staticmethod
     def get_default_distributions():
@@ -95,6 +111,10 @@ class LatSimClf(LatSimReg):
     def fit(self, x, y, **kwargs):
         y = to_torch(y).long()
         y = F.one_hot(y).float()
+        params = LatSimClf.get_default_params()
+        for arg in kwargs:
+            if arg in params:
+                params[arg] = kwargs[arg]
         return super().fit(x, y, **kwargs)
 
     def predict(self, x):
