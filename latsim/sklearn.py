@@ -13,11 +13,11 @@ import torch.nn.functional as F
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 
-from latsim.latsim import LatSim, train_sim
+from latsim.latsim import LatSim, train_sim, to_cuda
 
 def to_torch(x):
     if not isinstance(x, torch.Tensor):
-        return torch.from_numpy(x).float().cuda()
+        return to_cuda(torch.from_numpy(x))
     else:
         return x
 
@@ -87,7 +87,7 @@ class LatSimReg(BaseEstimator):
         return self
 
     def predict(self, x):
-        x = torch.from_numpy(x).float().cuda()
+        x = to_cuda(torch.from_numpy(x))
         with torch.no_grad():
             yhat = self.sim(self.x, self.y, x)
         return yhat.detach().cpu().numpy()

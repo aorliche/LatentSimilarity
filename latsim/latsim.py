@@ -3,10 +3,12 @@
 Main LatentSimilarity class
 Modified 1/12/23 for simplicity
 
-Fast, but requires you to know a target stopping criteria
-Alternatively, use a validation set
+Best way to use is to define a stopping criteria
+Use of the sklearn interface results in automatic creation of validation set,
+from the training set, which then determines best parameter choice
 
 2/8/23 Added automatic validation set creation in sklearn.py
+2/9/23 Automatic fallback to CPU if CUDA not available
 '''
 
 import numpy as np
@@ -14,10 +16,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+def to_cuda(x):
+    try:
+        return x.float().cuda()
+    except:
+        return x.float()
+
 class LatSim(nn.Module):
     def __init__(self, d, ld=2):
         super(LatSim, self).__init__()
-        self.A = nn.Parameter((torch.randn(d,ld)/(d**0.5)).float().cuda())
+        self.A = nn.Parameter(to_cuda(torch.randn(d,ld)/(d**0.5)))
 
     def E(self, xtr, xt):
         AT = (xtr@self.A).T
@@ -88,7 +96,7 @@ def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs
     if xv is not None and yv is not None:
         if verbose:
             print(f'Final best acc {best}')
-        sim.A = nn.Parameter(bestA.float().cuda())
+        sim.A = nn.Parameter(to_cuda(bestA))
     if verbose:
         print('Complete')
         
