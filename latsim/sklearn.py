@@ -67,11 +67,11 @@ class LatSimReg(BaseEstimator):
                 params[arg] = kwargs[arg]
         # Make automatic validation sets
         if params['clf']:
-            self.x, self.xv, self.y, self.yv = train_test_split(x, y, stratify=y, train_size=0.66)
+            self.x, self.xv, self.y, self.yv = train_test_split(x, y, stratify=y, train_size=0.75)
             self.y = np_one_hot(self.y)
             self.yv = np_one_hot(self.yv)
         else:
-            self.x, self.xv, self.y, self.yv = train_test_split(x, y, train_size=0.66)
+            self.x, self.xv, self.y, self.yv = train_test_split(x, y, train_size=0.75)
         # Convert to torch
         self.x = to_torch(self.x)
         self.y = to_torch(self.y)
