@@ -5,6 +5,8 @@ Modified 1/12/23 for simplicity
 
 Fast, but requires you to know a target stopping criteria
 Alternatively, use a validation set
+
+2/8/23 Added automatic validation set creation in sklearn.py
 '''
 
 import numpy as np
@@ -38,10 +40,6 @@ def train_sim_ce(*args, **kwargs):
     train_sim(*args, **kwargs)
 
 def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
-    # Optimizers
-    optim = torch.optim.Adam(sim.parameters(), lr=lr, weight_decay=wd)
-    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=20, factor=0.75, eps=1e-7)
-         
     # Validation set   
     if xv is not None and yv is not None:
         if yv.dim() == 2:
@@ -50,6 +48,10 @@ def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs
         else:
             best = float('inf')
         bestA = None
+
+    # Optimizers
+    optim = torch.optim.Adam(sim.parameters(), lr=lr, weight_decay=wd)
+    sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=20, factor=0.75, eps=1e-7) 
 
     for epoch in range(nepochs):
         optim.zero_grad()
@@ -81,11 +83,13 @@ def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs
         if epoch % pperiod == 0 or epoch == nepochs-1:
             if verbose:
                 print(f'{epoch} loss: {float(loss)} lr: {sched._last_lr}')
+        optim.zero_grad()
 
-    optim.zero_grad()
     if xv is not None and yv is not None:
         if verbose:
             print(f'Final best acc {best}')
         sim.A = nn.Parameter(bestA.float().cuda())
     if verbose:
         print('Complete')
+
+        
