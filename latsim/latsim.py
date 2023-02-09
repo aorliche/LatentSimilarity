@@ -91,5 +91,4 @@ def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs
         sim.A = nn.Parameter(bestA.float().cuda())
     if verbose:
         print('Complete')
-
         
