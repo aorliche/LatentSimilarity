@@ -21,13 +21,6 @@ class LatSim(nn.Module):
         AT = (xtr@self.A).T
         A = xt@self.A
         E = A@AT
-        '''
-        if xtr is xt:
-            M = torch.zeros(*E.shape).float().cuda()
-            i = torch.arange(M.shape[0])
-            M[i,i] = float('-inf')
-            E = E + M
-        '''
         return F.softmax(E,dim=1)
         
     def forward(self, xtr, ytr, xt=None):
@@ -44,10 +37,9 @@ def train_sim_ce(*args, **kwargs):
     kwargs['lossfn'] = nn.CrossEntropyLoss()
     train_sim(*args, **kwargs)
 
-def train_sim(sim, xtr, ytr, stop, xv=None, yv=None, 
-    lr=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
+def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
     # Optimizers
-    optim = torch.optim.Adam(sim.parameters(), lr=lr, weight_decay=0)
+    optim = torch.optim.Adam(sim.parameters(), lr=lr, weight_decay=wd)
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(optim, patience=20, factor=0.75, eps=1e-7)
          
     # Validation set   
@@ -68,26 +60,27 @@ def train_sim(sim, xtr, ytr, stop, xv=None, yv=None,
         if loss < stop:
             break
         sched.step(loss)
+        # Check validation set
+        if xv is not None and yv is not None:
+            with torch.no_grad():
+                yhat = sim(xtr, ytr, xv)
+                if yv.dim() == 2:
+                    yhat = torch.argmax(yhat, dim=1)
+                    acc = torch.sum(yvv == yhat)/len(yvv)
+                    acc = float(acc)
+                    better = acc > best
+                else:
+                    acc = lossfn(yhat, yv)
+                    acc = float(acc)
+                    better = acc < best
+                if better:
+                    best = acc
+                    bestA = sim.A.detach()
+                    if verbose:
+                        print(f'Best acc {acc}') 
         if epoch % pperiod == 0 or epoch == nepochs-1:
-            if xv is not None and yv is not None:
-                with torch.no_grad():
-                    yhat = sim(xtr, ytr, xv)
-                    if yv.dim() == 2:
-                        yhat = torch.argmax(yhat, dim=1)
-                        acc = torch.sum(yvv == yhat)/len(yvv)
-                        acc = float(acc)
-                        better = acc > best
-                    else:
-                        acc = lossfn(yhat, yv)
-                        acc = float(acc)
-                        better = acc < best
-                    if better:
-                        best = acc
-                        bestA = sim.A.detach()
-                        if verbose:
-                            print(f'Best acc {acc}') 
             if verbose:
-                print(f'{epoch} recon: {float(loss)} lr: {sched._last_lr}')
+                print(f'{epoch} loss: {float(loss)} lr: {sched._last_lr}')
 
     optim.zero_grad()
     if xv is not None and yv is not None:

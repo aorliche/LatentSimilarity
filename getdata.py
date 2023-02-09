@@ -1,6 +1,7 @@
 # Get dummy fMRI and genomics data
 
 import requests
+import os
 
 host = 'https://hunimal.org/Hackathon/data'
 files = ['fmri-FC.pkl', 'fmri-FC-slim.pkl', 'T2Dcounts.pkl', 'GSE202295_gene_counts.txt']
@@ -13,6 +14,8 @@ for file in files:
     if r.status_code != 200:
         print('Something went wrong')
     else:
+        if not os.path.exists('data'):
+            os.makedirs('data')
         with open(f'data/{file}', 'wb') as f:
             f.write(r.content)
         print('Done')
