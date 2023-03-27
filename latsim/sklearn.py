@@ -47,7 +47,7 @@ class LatSimReg(BaseEstimator):
             nepochs=[100,1000,2000],
         )
 
-    def get_params(self):
+    def get_params(self, **params):
         return dict(ld=self.ld, stop=self.stop, lr=self.lr, wd=self.wd, nepochs=self.nepochs, lossfn=self.lossfn, verbose=self.verbose, clf=self.clf)
 
     def set_params(self, **params):
