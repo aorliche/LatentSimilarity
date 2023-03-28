@@ -22,6 +22,7 @@ def to_torch(x):
         return x
 
 def np_one_hot(y):
+    y = y.astype('int')
     r = np.zeros((y.size, y.max()+1))
     r[np.arange(y.size), y] = 1
     return r
