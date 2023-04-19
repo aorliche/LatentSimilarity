@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import train_test_split
 
-from latsim.latsim import LatSim, train_sim, to_cuda
+from latsim.model import LatSim, train_sim, to_cuda
 
 def to_torch(x):
     if not isinstance(x, torch.Tensor):
