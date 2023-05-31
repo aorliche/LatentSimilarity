@@ -47,7 +47,7 @@ def train_sim_ce(*args, **kwargs):
     kwargs['lossfn'] = nn.CrossEntropyLoss()
     train_sim(*args, **kwargs)
 
-def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs=100, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
+def train_sim(sim, xtr, ytr, stop=0, xv=None, yv=None, lr=1e-4, wd=1e-4, nepochs=1000, pperiod=20, lossfn=nn.MSELoss(), verbose=False):
     # Validation set   
     if xv is not None and yv is not None:
         if yv.dim() == 2:

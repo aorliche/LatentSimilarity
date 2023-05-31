@@ -66,6 +66,7 @@ class LatSimReg(BaseEstimator):
         for arg in kwargs:
             if arg in params:
                 params[arg] = kwargs[arg]
+        self.x, self.y = x, y
         # Make automatic validation sets
         if params['clf']:
             self.x, self.xv, self.y, self.yv = train_test_split(x, y, stratify=y, train_size=0.75)
@@ -84,6 +85,7 @@ class LatSimReg(BaseEstimator):
             print(params)
         del params['ld']
         del params['clf']
+        #train_sim(self.sim, self.x, self.y, **params)
         train_sim(self.sim, self.x, self.y, xv=self.xv, yv=self.yv, **params)
         return self
 
