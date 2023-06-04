@@ -28,6 +28,11 @@ class LatSim(nn.Module):
         self.A = nn.Parameter(to_cuda(torch.randn(d,ld)/(d**0.5)))
 
     def E(self, xtr, xt):
+        # Normalize inputs
+        mu = torch.mean(xtr, dim=0, keepdims=True)
+        xtr = xtr - mu
+        xt = xt - mu
+        # Similarity matrix
         AT = (xtr@self.A).T
         A = xt@self.A
         E = A@AT

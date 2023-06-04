@@ -36,7 +36,7 @@ class LatSimReg(BaseEstimator):
 
     @staticmethod
     def get_default_params():
-        return dict(ld=2, stop=0, lr=1e-4, wd=1e-4, nepochs=100, lossfn=nn.MSELoss(), verbose=False, clf=False)
+        return dict(ld=2, stop=0, lr=1e-4, wd=1e-4, nepochs=1000, lossfn=nn.MSELoss(), verbose=False, clf=False)
 
     @staticmethod
     def get_default_distributions():
@@ -66,27 +66,34 @@ class LatSimReg(BaseEstimator):
         for arg in kwargs:
             if arg in params:
                 params[arg] = kwargs[arg]
-        self.x, self.y = x, y
         # Make automatic validation sets
         if params['clf']:
+            self.x, self.y = x, np_one_hot(y)
+            '''
+            NOTE
             self.x, self.xv, self.y, self.yv = train_test_split(x, y, stratify=y, train_size=0.75)
             self.y = np_one_hot(self.y)
             self.yv = np_one_hot(self.yv)
+            '''
         else:
-            self.x, self.xv, self.y, self.yv = train_test_split(x, y, train_size=0.75)
+            #NOTE self.x, self.xv, self.y, self.yv = train_test_split(x, y, train_size=0.75)
+            self.x, self.y = x, y
         # Convert to torch
         self.x = to_torch(self.x)
         self.y = to_torch(self.y)
+        '''
+        NOTE
         self.xv = to_torch(self.xv)
         self.yv = to_torch(self.yv)
+        '''
         # Create model
         self.sim = LatSim(x.shape[1], params['ld'])
         if params['verbose']:
             print(params)
         del params['ld']
         del params['clf']
-        #train_sim(self.sim, self.x, self.y, **params)
-        train_sim(self.sim, self.x, self.y, xv=self.xv, yv=self.yv, **params)
+        train_sim(self.sim, self.x, self.y, **params)
+        #NOTE train_sim(self.sim, self.x, self.y, xv=self.xv, yv=self.yv, **params)
         return self
 
     def predict(self, x):
