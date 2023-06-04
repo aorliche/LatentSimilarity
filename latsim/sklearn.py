@@ -36,7 +36,7 @@ class LatSimReg(BaseEstimator):
 
     @staticmethod
     def get_default_params():
-        return dict(ld=2, stop=0, lr=1e-4, wd=1e-4, nepochs=1000, lossfn=nn.MSELoss(), verbose=False, clf=False)
+        return dict(ld=2, stop=0, lr=1e-4, wd=1e-4, nepochs=100, lossfn=nn.MSELoss(), verbose=False, clf=False)
 
     @staticmethod
     def get_default_distributions():
